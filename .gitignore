@@ -1,0 +1,10 @@
+build/
+.vscode/
+.devcontainer/
+dependencies.lock
+sdkconfig.ci
+sdkconfig.ci.cli_ses_tkt
+sdkconfig.ci.mbedtls_config
+sdkconfig.ci.ssldyn
+sdkconfig.defaults
+sdkconfig.old

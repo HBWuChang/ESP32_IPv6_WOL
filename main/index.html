@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Device Configuration</title>
+    <script>
+        function refreshIPv6() {
+            fetch('/v6').then(response => response.text()).then(data => {
+                document.getElementById('ipv6').innerText = data;
+            }).catch(error => {
+                document.getElementById('ipv6').innerText = 'Failed to retrieve IPv6 address';
+            });
+        }
+
+        function sendWOL() {
+            const token = document.getElementById('token').value;
+            const mac = document.getElementById('mac').value;
+            const boardAddress = document.getElementById('board_address').value;
+            const port = document.getElementById('port').value;
+
+            fetch('/wol', {
+                method: 'GET',
+                headers: {
+                    'token': token,
+                    'mac': mac,
+                    'board_address': boardAddress,
+                    'port': port
+                }
+            }).then(response => response.text()).then(data => {
+                alert(data);
+            }).catch(error => {
+                alert('Failed to send WOL request');
+            });
+        }
+
+        function getConfig() {
+            const token = document.getElementById('token').value;
+
+            fetch('/getconfig', {
+                method: 'GET',
+                headers: { 'token': token }
+            }).then(response => response.json()).then(data => {
+                document.getElementById('domain_name').value = data.domain_name || '';
+                document.getElementById('aaaa_name').value = data.aaaa_name || '';
+                document.getElementById('cloudflare_token').value = data.cloudflare_token || '';
+                document.getElementById('config_token').value = data.token || '';
+                document.getElementById('server_port').value = data.server_port || '';
+                document.getElementById('wifi_ssid').value = data.wifi_ssid || '';
+                document.getElementById('wifi_passwd').value = data.wifi_passwd || '';
+                document.getElementById('mac').value = data.wol_mac || '';
+                document.getElementById('board_address').value = data.wol_addr || '';
+                document.getElementById('port').value = data.wol_port || '';
+                // 启用 Set Configuration 按钮
+                document.getElementById('setConfigButton').disabled = false;
+            }).catch(error => {
+                alert('Failed to retrieve configuration');
+            });
+        }
+
+        function setConfig() {
+            const token = document.getElementById('token').value;
+            const config = {
+                domain_name: document.getElementById('domain_name').value,
+                aaaa_name: document.getElementById('aaaa_name').value,
+                cloudflare_token: document.getElementById('cloudflare_token').value,
+                token: document.getElementById('config_token').value,
+                server_port: document.getElementById('server_port').value,
+                wifi_ssid: document.getElementById('wifi_ssid').value,
+                wifi_passwd: document.getElementById('wifi_passwd').value
+                ,
+                wol_mac: document.getElementById('mac').value,
+                wol_addr: document.getElementById('board_address').value,
+                wol_port: document.getElementById('port').value
+            };
+
+            fetch('/setconfig', {
+                method: 'POST',
+                headers: { 'token': token },
+                body: JSON.stringify(config)
+            }).then(response => response.text()).then(data => {
+                alert(data);
+            }).catch(error => {
+                alert('Failed to set configuration');
+            });
+        }
+
+        function rebootDevice() {
+            const token = document.getElementById('token').value;
+
+            fetch('/reboot', {
+                method: 'GET',
+                headers: { 'token': token }
+            }).then(response => response.text()).then(data => {
+                alert(data);
+            }).catch(error => {
+                alert('Failed to reboot device');
+            });
+        }
+
+        setInterval(refreshIPv6, 10000);
+    </script>
+</head>
+
+<body>
+    <h1>Your IPv6 Address</h1>
+    <p id="ipv6">%s</p>
+
+    <h2>Send Wake-on-LAN (WOL) Request</h2>
+    <form onsubmit="event.preventDefault(); sendWOL();">
+        <label for="token">Token:</label><br>
+        <input type="text" id="token" name="token" required><br><br>
+
+        <label for="mac">MAC Address:</label><br>
+        <input type="text" id="mac" name="mac" placeholder="00:11:22:33:44:55" required><br><br>
+
+        <label for="board_address">Board Address:</label><br>
+        <input type="text" id="board_address" name="board_address" value="192.168." required><br><br>
+
+        <label for="port">Port:</label><br>
+        <input type="number" id="port" name="port" value="9" required><br><br>
+
+        <button type="submit">Send WOL</button><!-- 在 WOL 按钮之后添加 Sync Cloudflare 按钮 -->
+        <button type="button" onclick="syncCloudflare()">try update AAAA record</button>
+        <button type="button" onclick="getConfig()">Get Configuration</button>
+    </form>
+
+    <h2>Device Configuration</h2>
+    <form onsubmit="event.preventDefault();">
+        <label for="domain_name">Domain Name:</label><br>
+        <input type="text" id="domain_name" name="domain_name"><br><br>
+
+        <label for="aaaa_name">AAAA Name:</label><br>
+        <input type="text" id="aaaa_name" name="aaaa_name"><br><br>
+        <label for="cloudflare_token" >Cloudflare Token:(get form https://dash.cloudflare.com/profile/api-tokens)</label><br>
+        <input type="text" id="cloudflare_token" name="cloudflare_token"><br><br>
+
+        <label for="config_token">Token:</label><br>
+        <input type="text" id="config_token" name="config_token"><br><br>
+
+        <label for="server_port">Server Bind Port:</label><br>
+        <input type="text" id="server_port" name="server_port"><br><br>
+
+        <!-- 在页面中添加 WiFi SSID 和密码字段 -->
+        <label for="wifi_ssid">WiFi SSID:</label><br>
+        <input type="text" id="wifi_ssid" name="wifi_ssid"><br><br>
+
+        <label for="wifi_passwd">WiFi Password:</label><br>
+        <input type="password" id="wifi_passwd" name="wifi_passwd"><br><br>
+
+        <button type="button" id="setConfigButton" onclick="setConfig()">Set Configuration</button>
+        <button type="button" onclick="rebootDevice()">Reboot Device</button>
+    </form>
+</body>
+
+</html>
+<script>
+    function syncCloudflare() {
+        const token = document.getElementById('token').value;
+
+        fetch('/sync_cloudflare', {
+            method: 'GET',
+            headers: { 'token': token }
+        }).then(response => response.text()).then(data => {
+            alert(data);
+        }).catch(error => {
+            alert('Failed to sync with Cloudflare');
+        });
+    }
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // 在页面加载时禁用 Set Configuration 按钮
+        const setConfigButton = document.getElementById('setConfigButton');
+        if (setConfigButton) {
+            setConfigButton.disabled = true;
+        } else {
+            console.error("Set Configuration button not found!");
+        }
+    });
+</script>
