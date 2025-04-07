@@ -108,7 +108,7 @@
     <h2>Send Wake-on-LAN (WOL) Request</h2>
     <form onsubmit="event.preventDefault(); sendWOL();">
         <label for="token">Token:</label><br>
-        <input type="text" id="token" name="token" required><br><br>
+        <input type="text" id="token" name="token"><br><br>
 
         <label for="mac">MAC Address:</label><br>
         <input type="text" id="mac" name="mac" placeholder="00:11:22:33:44:55" required><br><br>
@@ -131,7 +131,8 @@
 
         <label for="aaaa_name">AAAA Name:</label><br>
         <input type="text" id="aaaa_name" name="aaaa_name"><br><br>
-        <label for="cloudflare_token" >Cloudflare Token:(get form https://dash.cloudflare.com/profile/api-tokens)</label><br>
+        <label for="cloudflare_token">Cloudflare Token:(get form
+            https://dash.cloudflare.com/profile/api-tokens)</label><br>
         <input type="text" id="cloudflare_token" name="cloudflare_token"><br><br>
 
         <label for="config_token">Token:</label><br>
