@@ -70,3 +70,16 @@ I (5446) main_task: Returned from app_main()`
 - Get Configuration按钮可获取的配置包括WOL的MAC地址、Board Address、Port信息
 - 所有按钮均会校验Token和cookie，任一有效会更新并返回cookie，此cookie仅在ESP32非易失性储存一份（即输入一次Token后，在不更换浏览器或清除cookie的情况下，后续操作均可不再输入Token
 - `Send WOL`按钮会将当前WOL信息保存到ESP32的非易失性存储中，重启后仍然有效，可通过`Get Configuration`按钮获取
+----
+### 自行构建其它ESP32版本固件方法（此处使用ESP32-C3为例
+- 安装vscode和esp-idf（具体安装方法请参考[ESP-IDF安装](https://github.com/espressif/vscode-esp-idf-extension/blob/master/README_CN.md#%E5%AE%89%E8%A3%85)）
+- 克隆项目到本地并打开
+- 据图示选择esp32-c3（或其他ESP32版本）![alt text](image.png)选择第一项![alt text](image-3.png)
+- 等待右下角进度条完成，出现如下错误不必理会![alt text](image-1.png)
+- 插入设备并选择相应端口![alt text](image-2.png)
+- 选择烧录方式![alt text](image-4.png)
+- 单击齿轮按钮，等待弹出错误信息后点击取消按钮![alt text](image-5.png)
+- 打开图示文件，以gbk编码重新保存![alt text](image-6.png)![alt text](image-7.png)
+- 再次点击齿轮按钮，打开SDK配置编辑器页面，搜索`CONFIG_ESP_TLS_INSECURE`项并将如下两项勾选，点击保存![alt text](image-8.png)
+- 点击`构建、烧录和监视`按钮，等待烧录完成![alt text](image-9.png)
+- 可跳转到[使设备联网](#使设备联网)步骤
