@@ -1,4 +1,9 @@
-## ESP32-S3 SuperMini
+### 若使用本项目，你需要准备
+- ESP32-S3 SuperMini（或其他ESP32-S3开发板（可能不需要自行编译固件））（或其他ESP32开发板（需自行编译固件））
+- 能获取公网ipv6地址、与欲唤醒主机有线连接且有2.4G Wi-Fi的路由器
+- 一个域名，且已托管到Cloudflare
+- 欲唤醒的主机支持Wake on LAN（WOL）功能且已开启
+### 以下步骤基于ESP32-S3 SuperMini开发板
 ### 烧录步骤（可自行选择其他方法
 #### 必须（从release中下载）
 1. bootloader.bin 
@@ -58,6 +63,8 @@ I (5446) main_task: Returned from app_main()`
 - 通过浏览器访问`http://wol.example.com:8080`（域名和端口号根据实际情况修改）打开网页
 - 填入`Token`（默认为`123456`）、MAC Address（如`11:22:33:44:55:66`）、Board Address、Port（一般为`9`）
 - 点击`Send WOL`按钮以唤醒主机
+### 重置ESP32-S3 SuperMini
+- 单击设备上的- BOOT -按钮，设备会恢复到首次烧录状态并重启
 ### 注意事项
 - ESP32在启动时及每`5分钟`会查询一次Cloudflare的AAAA记录，若发现IP地址发生变化，则会自动更新Cloudflare的AAAA记录，点击`try update AAAA record`按钮可立即尝试更新（在未设置Cloudflare Token的情况此功能不可用
 - Get Configuration按钮可获取的配置包括WOL的MAC地址、Board Address、Port信息
