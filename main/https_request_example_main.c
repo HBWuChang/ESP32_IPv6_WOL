@@ -87,7 +87,14 @@ static const char *TAG = "HBWuChang_IPv6_WOL";
 #define TIME_PERIOD (86400000000ULL)
 #include <stdlib.h>
 #include <time.h>
+static esp_timer_handle_t http_request_watchdog_timer;
 
+// 定时器回调函数
+static void http_request_watchdog_callback(void *arg)
+{
+    ESP_LOGW(TAG, "No HTTP request received in the last hour. Rebooting...");
+    esp_restart();
+}
 static char *generate_cookie_header(char *cookie, size_t length)
 {
     const char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -763,6 +770,9 @@ static void ipv4_ipv6_server_task(void *pvParameters)
             close(sock);
             continue;
         }
+        // 重置 HTTP 请求看门狗计时器
+        ESP_ERROR_CHECK(esp_timer_stop(http_request_watchdog_timer));
+        ESP_ERROR_CHECK(esp_timer_start_periodic(http_request_watchdog_timer, 29 * 60 * 1000000));
 
         rx_buffer[len] = '\0';
         ESP_LOGI(TAG, "Received: %s", rx_buffer);
@@ -1495,6 +1505,13 @@ void app_main(void)
     esp_timer_handle_t nvs_update_timer;
     ESP_ERROR_CHECK(esp_timer_create(&nvs_update_timer_args, &nvs_update_timer));
     ESP_ERROR_CHECK(esp_timer_start_periodic(nvs_update_timer, TIME_PERIOD));
+    const esp_timer_create_args_t http_request_watchdog_timer_args = {
+        .callback = &http_request_watchdog_callback,
+    };
+
+    ESP_ERROR_CHECK(esp_timer_create(&http_request_watchdog_timer_args, &http_request_watchdog_timer));
+    ESP_ERROR_CHECK(esp_timer_start_periodic(http_request_watchdog_timer, 29 * 60 * 1000000));
+
     // 检查 cloudflare_token 是否为空
     if (strlen(cloudflare_token) > 0)
     {
