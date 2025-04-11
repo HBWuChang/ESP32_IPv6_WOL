@@ -112,21 +112,43 @@ static char *generate_cookie_header(char *cookie, size_t length)
     esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &nvs_handle);
     if (err == ESP_OK)
     {
-        nvs_set_str(nvs_handle, "cookie", cookie);
+        char existing_cookies[COOKIE_LENGTH * 4] = {0}; // 用于存储最多 4 个拼接的 Cookie
+        size_t size = sizeof(existing_cookies);
+
+        // 从 NVS 中读取现有的 Cookie
+        if (nvs_get_str(nvs_handle, "cookie", existing_cookies, &size) == ESP_OK)
+        {
+            ESP_LOGI(TAG, "Existing cookies: %s", existing_cookies);
+        }
+
+        // 拼接新旧 Cookie
+        char new_cookies[COOKIE_LENGTH * 4] = {0};
+        snprintf(new_cookies, sizeof(new_cookies), "%s%s", cookie, existing_cookies);
+
+        // 截取最多 4 个 Cookie 的长度
+        size_t new_length = strlen(new_cookies);
+        if (new_length > COOKIE_LENGTH * 4 - 1)
+        {
+            memmove(new_cookies, new_cookies + (new_length - COOKIE_LENGTH * 4), COOKIE_LENGTH * 4);
+            new_cookies[COOKIE_LENGTH * 4 - 1] = '\0';
+        }
+
+        // 保存拼接后的 Cookie 到 NVS
+        nvs_set_str(nvs_handle, "cookie", new_cookies);
         err = nvs_commit(nvs_handle);
         if (err == ESP_OK)
         {
-            ESP_LOGI(TAG, "Generated and saved cookie to NVS: %s", cookie);
+            ESP_LOGI(TAG, "Generated and saved cookies to NVS: %s", new_cookies);
         }
         else
         {
-            ESP_LOGE(TAG, "Failed to commit cookie to NVS: %s", esp_err_to_name(err));
+            ESP_LOGE(TAG, "Failed to commit cookies to NVS: %s", esp_err_to_name(err));
         }
         nvs_close(nvs_handle);
     }
     else
     {
-        ESP_LOGE(TAG, "Failed to open NVS for saving cookie: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "Failed to open NVS for saving cookies: %s", esp_err_to_name(err));
     }
 
     // 构造 HTTP 响应头
@@ -134,6 +156,7 @@ static char *generate_cookie_header(char *cookie, size_t length)
     snprintf(header, sizeof(header), "set-cookie: HBWuChang_IPv6_WOL=%s; path=/; HttpOnly;", cookie);
     return header;
 }
+
 static bool check_cookie(char *rx_buffer)
 {
     char *cookie_header = strstr(rx_buffer, "Cookie: ");
@@ -141,13 +164,51 @@ static bool check_cookie(char *rx_buffer)
     {
         char *cookie_value = cookie_header + strlen("Cookie: ");
         char *end_of_cookie = strstr(cookie_value, "\r\n");
+        // HBWuChang_IPv6_WOL=
+        char *cookie_start = strstr(cookie_value, "HBWuChang_IPv6_WOL=");
+        if (cookie_start)
+        {
+            cookie_value = cookie_start + strlen("HBWuChang_IPv6_WOL=");
+        }
+        else
+        {
+            ESP_LOGI(TAG, "Cookie not found in request");
+            return false;
+        }
         if (end_of_cookie)
         {
             *end_of_cookie = '\0'; // 将结束符替换为 null 字符
             ESP_LOGI(TAG, "Received cookie: %s", cookie_value);
-            return strcmp(strstr(cookie_value, "HBWuChang_IPv6_WOL=") + strlen("HBWuChang_IPv6_WOL="), cookie) == 0; // 比较接收到的 Cookie 和存储的 Cookie
+            
+            // 从 NVS 中读取所有存储的 Cookie
+            nvs_handle_t nvs_handle;
+            esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READONLY, &nvs_handle);
+            if (err == ESP_OK)
+            {
+                char stored_cookies[COOKIE_LENGTH * 4] = {0};
+                size_t size = sizeof(stored_cookies);
+
+                if (nvs_get_str(nvs_handle, "cookie", stored_cookies, &size) == ESP_OK)
+                {
+                    ESP_LOGI(TAG, "Stored cookies: %s", stored_cookies);
+
+                    // 检查 cookie_value 是否在 stored_cookies 中
+                    if (strstr(stored_cookies, cookie_value) != NULL)
+                    {
+                        nvs_close(nvs_handle);
+                        ESP_LOGI(TAG, "Cookie verified successfully");
+                        return true;
+                    }
+                }
+                nvs_close(nvs_handle);
+            }
+            else
+            {
+                ESP_LOGE(TAG, "Failed to open NVS for reading cookies: %s", esp_err_to_name(err));
+            }
         }
     }
+    ESP_LOGI(TAG, "Cookie verification failed");
     return false;
 }
 void init_random_generator()
